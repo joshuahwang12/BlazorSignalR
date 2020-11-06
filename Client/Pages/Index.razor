@@ -1,0 +1,42 @@
+﻿@page "/data"
+@using Microsoft.AspNetCore.SignalR.Client
+@inject NavigationManager NavigationManager
+@inject IJSRuntime IJSRuntime
+@implements IDisposable
+
+<div id="LiveChart"></div>
+
+@code {
+    private HubConnection hubConnection;
+    private List<string> messages = new List<string>();
+
+    private string userInput;
+    private string messageInput;
+
+    protected override async Task OnInitializedAsync()
+    {
+        hubConnection = new HubConnectionBuilder()
+            .WithUrl(NavigationManager.ToAbsoluteUri("/dotnetifyhub"))
+            .Build();
+
+        hubConnection.On<string, DotnetifyModel>("ReceiveData", (message, data) =>
+        {
+            var encodedMsg = $"{message}: {message}";
+            messages.Add(encodedMsg);
+            StateHasChanged();
+        });
+
+        await hubConnection.StartAsync();
+    }
+
+    Task Send() =>
+        hubConnection.SendAsync("SendMessage", userInput, messageInput);
+
+    public bool IsConnected =>
+        hubConnection.State == HubConnectionState.Connected;
+
+    public void Dispose()
+    {
+        _ = hubConnection.DisposeAsync();
+    }
+}
